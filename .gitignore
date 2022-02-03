@@ -1,0 +1,7 @@
+zig-out
+zig-cache
+lua-*/src/*.o
+luac.out
+payload.foilz.gz
+/packme
+/unpackme
