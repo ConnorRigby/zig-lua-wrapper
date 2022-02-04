@@ -1,13 +1,6 @@
 const std = @import("std");
 var builder: *std.build.Builder = undefined;
 
-fn myTask(self: *std.build.Step) !void {
-    const compile_cmd = builder.addSystemCommand(&[_][]const u8{ "/bin/bash", "-c", "luac inspect.lua main.lua" });
-    try compile_cmd.step.make();
-
-    _ = self;
-}
-
 pub fn build(b: *std.build.Builder) void {
     builder = b;
     // Standard target options allows the person running `zig build` to choose
@@ -19,9 +12,7 @@ pub fn build(b: *std.build.Builder) void {
     // Standard release options allow the person running `zig build` to select
     // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall.
     const mode = b.standardReleaseOptions();
-
-    const exe = b.addExecutable("luac", "wrapper.zig");
-
+    const exe = b.addExecutable("wrapper", "wrapper.zig");
     exe.setTarget(target);
     exe.setBuildMode(mode);
     exe.linkLibC();
@@ -63,23 +54,27 @@ pub fn build(b: *std.build.Builder) void {
         "lzio.c",
     };
 
-    const c_flags = [_][]const u8{
-        "-std=c99",
-        "-O2",
-        "-DLUA_USE_POSIX",
-        // "-DLUA_USE_WINDOWS"
-    };
-
-    inline for (lua_c_files) |c_file| {
-        exe.addCSourceFile("lua-5.3.4/src/" ++ c_file, &c_flags);
+    if(target.os_tag == std.Target.Os.Tag.windows) {
+        const c_flags = [_][]const u8{
+            "-std=c99",
+            "-O2",
+            "-DLUA_USE_WINDOWS"
+        };
+        inline for (lua_c_files) |c_file| {
+            exe.addCSourceFile("lua-5.3.4/src/" ++ c_file, &c_flags);
+        }
+    } else {
+        const c_flags = [_][]const u8{
+            "-std=c99",
+            "-O2",
+            "-DLUA_USE_POSIX",
+        };
+        inline for (lua_c_files) |c_file| {
+            exe.addCSourceFile("lua-5.3.4/src/" ++ c_file, &c_flags);
+        }
     }
 
     exe.install();
-
-    const step = b.step("task", "do something");
-    step.makeFn = myTask;
-    b.default_step = step;
-    exe.step.dependOn(step);
 
     const run_cmd = exe.run();
     run_cmd.step.dependOn(b.getInstallStep());
@@ -89,11 +84,4 @@ pub fn build(b: *std.build.Builder) void {
 
     const run_step = b.step("run", "Run the app");
     run_step.dependOn(&run_cmd.step);
-
-    const exe_tests = b.addTest("src/main.zig");
-    exe_tests.setTarget(target);
-    exe_tests.setBuildMode(mode);
-
-    const test_step = b.step("test", "Run unit tests");
-    test_step.dependOn(&exe_tests.step);
 }

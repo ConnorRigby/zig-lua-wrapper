@@ -1,3 +1,9 @@
-local inspect = require 'inspect'
-print("hello, world")
-print(inspect({1,2,3,4}))
+print("press Y")
+
+local input = "\0"
+
+while(input ~= 'y' and input ~= 'Y') do
+  input = io.read(1)
+end
+
+print("🥧")
